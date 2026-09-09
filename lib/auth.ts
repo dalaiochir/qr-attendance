@@ -4,7 +4,7 @@ import { createHash, timingSafeEqual } from 'crypto'
 export const ADMIN_COOKIE = 'qr_admin_session'
 
 export function adminToken() {
-  const configured = process.env.ADMIN_PASSWORD
+  const configured = String(process.env.ADMIN_PASSWORD ?? '').trim()
   if (!configured) return ''
   return createHash('sha256').update(`qr-attendance:${configured}`).digest('hex')
 }
