@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ADMIN_COOKIE, adminToken } from '../../../../lib/auth'
+import { ADMIN_COOKIE, adminToken, isAdmin } from '../../../../lib/auth'
 
 function clean(value: unknown) {
   return String(value ?? '').trim()
+}
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ authenticated: isAdmin(req) })
 }
 
 export async function POST(req: NextRequest) {
@@ -10,18 +14,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const supplied = clean(body.password)
     const configured = clean(process.env.ADMIN_PASSWORD)
-
-    if (!configured) {
-      return NextResponse.json(
-        { error: 'ADMIN_PASSWORD production deployment дээр олдсонгүй. Vercel Environment Variables тохиргоог шалгаад Redeploy хийнэ үү.' },
-        { status: 503 }
-      )
-    }
-
-    if (!supplied || supplied !== configured) {
-      return NextResponse.json({ error: 'Нууц үг таарахгүй байна.' }, { status: 401 })
-    }
-
+    if (!configured) return NextResponse.json({ error: 'ADMIN_PASSWORD production deployment дээр олдсонгүй. Vercel Environment Variables тохиргоог шалгаад Redeploy хийнэ үү.' }, { status: 503 })
+    if (!supplied || supplied !== configured) return NextResponse.json({ error: 'Нууц үг таарахгүй байна.' }, { status: 401 })
     const res = NextResponse.json({ ok: true })
     res.cookies.set(ADMIN_COOKIE, adminToken(), {
       httpOnly: true,
@@ -38,12 +32,6 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(ADMIN_COOKIE, '', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  })
+  res.cookies.set(ADMIN_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 })
   return res
 }
