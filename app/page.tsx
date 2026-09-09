@@ -3,84 +3,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
-type Attendance = { id: string; name: string; studentId: string; time: string }
+type Attendance = { id:string; name:string; studentId:string; course:string; session:string; time:string; createdAt:string }
 
-export default function Home() {
-  const [name, setName] = useState('')
-  const [studentId, setStudentId] = useState('')
-  const [records, setRecords] = useState<Attendance[]>([])
-  const [message, setMessage] = useState('')
-  const [tab, setTab] = useState<'checkin' | 'admin'>('checkin')
-  const [origin, setOrigin] = useState('')
-
-  useEffect(() => {
-    setOrigin(window.location.origin)
-    const saved = localStorage.getItem('qr-attendance-records')
-    if (saved) setRecords(JSON.parse(saved))
-  }, [])
-
-  const session = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const checkinUrl = origin ? `${origin}/?session=${session}` : ''
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name.trim() || !studentId.trim()) return
-    const exists = records.some(r => r.studentId.toLowerCase() === studentId.trim().toLowerCase())
-    if (exists) {
-      setMessage('Энэ оюутны ирц аль хэдийн бүртгэгдсэн байна.')
-      return
-    }
-    const next = [{ id: crypto.randomUUID(), name: name.trim(), studentId: studentId.trim(), time: new Date().toLocaleString('mn-MN') }, ...records]
-    setRecords(next)
-    localStorage.setItem('qr-attendance-records', JSON.stringify(next))
-    setName('')
-    setStudentId('')
-    setMessage('Ирц амжилттай бүртгэгдлээ ✓')
-  }
-
-  function clearRecords() {
-    if (!confirm('Бүх ирцийн бүртгэлийг устгах уу?')) return
-    setRecords([])
-    localStorage.removeItem('qr-attendance-records')
-  }
-
-  return (
-    <main>
-      <header className="header">
-        <div className="brand"><span className="logo">✓</span><div><b>QR Ирц</b><small>Хурдан • Энгийн • Цаасгүй</small></div></div>
-        <nav><button className={tab === 'checkin' ? 'active' : ''} onClick={() => setTab('checkin')}>Ирц бүртгэх</button><button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>Багш / Admin</button></nav>
-      </header>
-
-      {tab === 'checkin' ? (
-        <section className="hero">
-          <div className="intro">
-            <span className="pill">Өнөөдрийн ирц • {session}</span>
-            <h1>QR уншуулаад<br/><em>ирцээ бүртгүүл.</em></h1>
-            <p>Нэр болон оюутны кодоо оруулаад хэдхэн секундэд ирцээ бүртгүүлээрэй.</p>
-            <form onSubmit={submit} className="card form">
-              <label>Овог, нэр<input value={name} onChange={e => setName(e.target.value)} placeholder="Жишээ: Б. Бат" required /></label>
-              <label>Оюутны код<input value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="Жишээ: KCS22001" required /></label>
-              <button className="primary">Ирц бүртгүүлэх →</button>
-              {message && <div className={message.includes('амжилттай') ? 'success' : 'warning'}>{message}</div>}
-            </form>
-          </div>
-          <div className="qrCard card">
-            <div className="qrTitle">QR CODE</div>
-            {checkinUrl && <div className="qr"><QRCodeSVG value={checkinUrl} size={220} level="H" /></div>}
-            <h2>Утсаараа уншуулна уу</h2>
-            <p>Камер эсвэл QR scanner ашиглан кодыг уншуулж ирцийн хуудсыг нээнэ.</p>
-            <div className="count"><strong>{records.length}</strong><span>Өнөөдөр бүртгүүлсэн</span></div>
-          </div>
-        </section>
-      ) : (
-        <section className="admin">
-          <div className="adminHead"><div><span className="pill">ADMIN DASHBOARD</span><h1>Өнөөдрийн ирц</h1><p>{session} • Нийт {records.length} хүн бүртгүүлсэн</p></div><button className="danger" onClick={clearRecords}>Бүртгэл цэвэрлэх</button></div>
-          <div className="card tableWrap">
-            {records.length === 0 ? <div className="empty">Одоогоор ирц бүртгэгдээгүй байна.</div> : <table><thead><tr><th>#</th><th>Нэр</th><th>Оюутны код</th><th>Бүртгүүлсэн цаг</th><th>Төлөв</th></tr></thead><tbody>{records.map((r,i)=><tr key={r.id}><td>{records.length-i}</td><td><b>{r.name}</b></td><td>{r.studentId}</td><td>{r.time}</td><td><span className="present">Ирсэн</span></td></tr>)}</tbody></table>}
-          </div>
-          <p className="note">MVP хувилбар: мэдээлэл энэ browser-ийн localStorage-д хадгалагдана. Олон төхөөрөмжийн нэгдсэн ирцэд database холбоно.</p>
-        </section>
-      )}
-    </main>
-  )
+export default function Home(){
+ const [records,setRecords]=useState<Attendance[]>([]),[name,setName]=useState(''),[studentId,setStudentId]=useState(''),[message,setMessage]=useState(''),[tab,setTab]=useState<'checkin'|'admin'>('checkin'),[origin,setOrigin]=useState(''),[course,setCourse]=useState('Хиймэл оюун'),[session,setSession]=useState(''),[search,setSearch]=useState('')
+ useEffect(()=>{setOrigin(location.origin);const p=new URLSearchParams(location.search);setCourse(p.get('course')||'Хиймэл оюун');setSession(p.get('session')||new Date().toISOString().slice(0,10));try{setRecords(JSON.parse(localStorage.getItem('qr-attendance-records')||'[]'))}catch{}},[])
+ const url=origin?`${origin}/?course=${encodeURIComponent(course)}&session=${encodeURIComponent(session)}`:''
+ const current=useMemo(()=>records.filter(r=>r.course===course&&r.session===session),[records,course,session])
+ const filtered=current.filter(r=>(r.name+' '+r.studentId).toLowerCase().includes(search.toLowerCase()))
+ function save(next:Attendance[]){setRecords(next);localStorage.setItem('qr-attendance-records',JSON.stringify(next))}
+ function submit(e:React.FormEvent){e.preventDefault();const sid=studentId.trim();if(!name.trim()||!sid)return;if(records.some(r=>r.session===session&&r.course===course&&r.studentId.toLowerCase()===sid.toLowerCase())){setMessage('Энэ оюутан тухайн хичээлд аль хэдийн бүртгэгдсэн байна.');return}save([{id:crypto.randomUUID(),name:name.trim(),studentId:sid,course,session,time:new Date().toLocaleString('mn-MN'),createdAt:new Date().toISOString()},...records]);setName('');setStudentId('');setMessage('Ирц амжилттай бүртгэгдлээ ✓')}
+ function clearCurrent(){if(confirm('Энэ хичээлийн ирцийг цэвэрлэх үү?'))save(records.filter(r=>!(r.course===course&&r.session===session)))}
+ function csv(){const rows=[['№','Нэр','Оюутны код','Хичээл','Session','Цаг'],...current.map((r,i)=>[String(i+1),r.name,r.studentId,r.course,r.session,r.time])];const text='\ufeff'+rows.map(x=>x.map(v=>'"'+v.replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));a.download=`attendance-${course}-${session}.csv`;a.click();URL.revokeObjectURL(a.href)}
+ return <main>
+  <header className="header"><div className="brand"><span className="logo">✓</span><div><b>QR Ирц</b><small>Хурдан • Энгийн • Цаасгүй</small></div></div><nav><button className={tab==='checkin'?'active':''} onClick={()=>setTab('checkin')}>Ирц бүртгэх</button><button className={tab==='admin'?'active':''} onClick={()=>setTab('admin')}>Багш / Admin</button></nav></header>
+  {tab==='checkin'?<section className="hero"><div className="intro"><span className="pill">{course} • {session}</span><h1>QR уншуулаад<br/><em>ирцээ бүртгүүл.</em></h1><p>Нэр болон оюутны кодоо оруулаад хэдхэн секундэд ирцээ бүртгүүлээрэй.</p><form onSubmit={submit} className="card form"><label>Овог, нэр<input value={name} onChange={e=>setName(e.target.value)} placeholder="Жишээ: Б. Бат" required/></label><label>Оюутны код<input value={studentId} onChange={e=>setStudentId(e.target.value)} placeholder="Жишээ: KCS22001" required/></label><button className="primary">Ирц бүртгүүлэх →</button>{message&&<div className={message.includes('амжилттай')?'success':'warning'}>{message}</div>}</form></div><div className="qrCard card"><div className="qrTitle">QR CODE</div>{url&&<div className="qr"><QRCodeSVG value={url} size={220} level="H"/></div>}<h2>Утсаараа уншуулна уу</h2><p>QR код тухайн хичээл болон session-ийг автоматаар дамжуулна.</p><div className="count"><strong>{current.length}</strong><span>Бүртгүүлсэн</span></div></div></section>:
+  <section className="admin"><div className="adminHead"><div><span className="pill">ADMIN DASHBOARD</span><h1>Ирцийн удирдлага</h1><p>Хичээл болон огноогоор тусдаа QR үүсгэнэ.</p></div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className="primary" onClick={csv}>CSV татах</button><button className="danger" onClick={clearCurrent}>Ирц цэвэрлэх</button></div></div><div className="card" style={{padding:20,marginBottom:18,display:'grid',gap:12}}><label>Хичээлийн нэр<input value={course} onChange={e=>setCourse(e.target.value)}/></label><label>Session / огноо<input value={session} onChange={e=>setSession(e.target.value)}/></label>{url&&<div style={{display:'flex',gap:20,alignItems:'center',flexWrap:'wrap'}}><QRCodeSVG value={url} size={130}/><div><b>Оюутанд харуулах QR</b><p style={{wordBreak:'break-all'}}>{url}</p></div></div>}<label>Оюутан хайх<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Нэр эсвэл код..."/></label></div><div className="card tableWrap">{filtered.length===0?<div className="empty">Ирц олдсонгүй.</div>:<table><thead><tr><th>#</th><th>Нэр</th><th>Оюутны код</th><th>Хичээл</th><th>Цаг</th><th>Төлөв</th></tr></thead><tbody>{filtered.map((r,i)=><tr key={r.id}><td>{i+1}</td><td><b>{r.name}</b></td><td>{r.studentId}</td><td>{r.course}</td><td>{r.time}</td><td><span className="present">Ирсэн</span></td></tr>)}</tbody></table>}</div><p className="note">Анхаарах: одоогийн хадгалалт browser localStorage. Олон төхөөрөмжийн нэгдсэн бодит ирцэд server database шаардлагатай.</p></section>}
+ </main>
 }
